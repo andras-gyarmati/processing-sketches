@@ -20,6 +20,7 @@ void setup() {
   noFill();
   stroke(0);
   rectMode(CENTER);
+  frameRate(10);
 }
 
 void update() {
@@ -33,8 +34,8 @@ void update() {
 
 void draw() {
   background(150);
-  update();
   drawShape(points);
+  update();
 }
 
 void drawShape(ArrayList<PVector> array) {
@@ -46,47 +47,23 @@ void drawShape(ArrayList<PVector> array) {
   endShape();
 }
 
-ArrayList<PVector> resample(ArrayList<PVector> array, float distance) {
-  float corrected = 0;
-  float sumLen = 0;
-  for (int i = 0; i < array.size() - 1; i++) {
-    sumLen += PVector.dist(array.get(i), array.get(i + 1));
-  }
-  corrected = sumLen / ceil(sumLen / distance);
-  ArrayList<PVector> res =  new ArrayList<PVector>();
-  int i = 1;
-  float remainder = 0;
-  float offset = distance / 20;
-  PVector p1 = array.get(0);
-  PVector p2 = new PVector();
-  PVector diff = PVector.sub(p2, p1);
-  diff.setMag(offset);
-  p1.add(diff);
-  res.add(p1.copy());
-  while (i < array.size()) {
-    p2 = array.get(i);
-    diff = PVector.sub(p2, p1);
-    if (remainder > 0) {
-      diff.setMag(remainder);
-      p1.add(diff);
-      res.add(p1.copy());
-      remainder = 0;
+ArrayList<PVector> resample(ArrayList<PVector> pointsArray, float distance) {
+  ArrayList<PVector> resampledPoints = new ArrayList<PVector>();
+  float currentLength = 0;
+  for (int i = 0; i < pointsArray.size() - 1; i++) {
+    PVector p1 = pointsArray.get(i);
+    PVector p2 = pointsArray.get(i + 1);
+    float segmentLength = PVector.dist(p1, p2);
+    currentLength += segmentLength;
+    while (currentLength >= distance) {
+        float t = (distance - currentLength + segmentLength) / segmentLength;
+        PVector newPoint = PVector.lerp(p1, p2, t);
+        resampledPoints.add(newPoint);
+        currentLength = currentLength - distance;
     }
-    diff.setMag(corrected);
-    while (p1.dist(p2) >= corrected) {
-      p1.add(diff);
-      res.add(p1.copy());
-    }
-    remainder = corrected - p1.dist(p2);
-    p1 = p2.copy();
-    i++;
   }
-  PVector first = res.get(0);
-  int count = res.size();
-  float epsilon = 1;
-  if (count > 1 && PVector.dist(first, res.get(count - 1)) < epsilon) res.remove(count - 1);
-  if (count > 0) res.add(first);
-  return res;
+  resampledPoints.add(pointsArray.get(0));
+  return resampledPoints;
 }
 
 ArrayList<PVector> relax(ArrayList<PVector> array, float dist) {
