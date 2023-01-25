@@ -27,6 +27,7 @@ void setup() {
   //noStroke();
   //fill(255);
   rectMode(CENTER);
+  frameRate(1);
 }
 
 float randomlen() {
@@ -41,7 +42,8 @@ void update() {
       stop = true;
     qTree.add(p);
   }
-  points = relax(points, resampleDist * relaxScalar);
+  //points = relax(points, resampleDist * relaxScalar);
+  relax(points, resampleDist * relaxScalar);
 }
 
 void draw() {
@@ -73,7 +75,7 @@ void drawShape(ArrayList<PVector> array) {
   endShape();
 }
 
-ArrayList<PVector> resample(ArrayList<PVector> array, float dist) {
+ArrayList<PVector> resample_old(ArrayList<PVector> array, float dist) {
   ArrayList<PVector> res =  new ArrayList<PVector>();
   int i = 1;
   float remainder = 0;
@@ -106,8 +108,29 @@ ArrayList<PVector> resample(ArrayList<PVector> array, float dist) {
   return res;
 }
 
+ArrayList<PVector> resample(ArrayList<PVector> points, float spacing) {
+  ArrayList<PVector> newPoints = new ArrayList<PVector>();
+  float d = 0;
+  for (int i = 1; i < points.size(); i++) {
+    PVector p1 = points.get(i - 1);
+    PVector p2 = points.get(i);
+    float d2 = PVector.dist(p1, p2);
+    if (d + d2 >= spacing) {
+      PVector newPoint = PVector.lerp(p1, p2, (spacing - d) / d2);
+      newPoints.add(newPoint);
+      points.add(i, newPoint);
+      d = 0;
+    }
+    else {
+      d += d2;
+    }
+  }
+  return newPoints;
+}
+
+
 // todo: voronoi
-ArrayList<PVector> relax(ArrayList<PVector> array, float dist) {
+ArrayList<PVector> relax_old(ArrayList<PVector> array, float dist) {
   ArrayList<PVector> rel = new ArrayList<PVector>();
   for (int i = 0; i < array.size(); i++) {
     PVector cur = array.get(i);
@@ -131,4 +154,20 @@ ArrayList<PVector> relax(ArrayList<PVector> array, float dist) {
     rel.add(PVector.add(cur, diff));
   }
   return rel;
+}
+
+void relax(ArrayList<PVector> points, float relaxation) {
+  float k = relaxation;
+  for (int i = 0; i < points.size(); i++) {
+    PVector p1 = points.get(i);
+    for (int j = i + 1; j < points.size(); j++) {
+      PVector p2 = points.get(j);
+      float d = PVector.dist(p1, p2);
+      PVector dir = PVector.sub(p1, p2);
+      dir.normalize();
+      dir.mult(k * (d - 1));
+      p1.sub(dir);
+      p2.add(dir);
+    }
+  }
 }

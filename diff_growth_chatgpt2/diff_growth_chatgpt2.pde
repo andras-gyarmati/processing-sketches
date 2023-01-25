@@ -20,7 +20,7 @@ void setup() {
   noFill();
   stroke(0);
   rectMode(CENTER);
-  frameRate(10);
+  //frameRate(10);
 }
 
 void update() {
@@ -33,6 +33,9 @@ void update() {
 }
 
 void draw() {
+  float scaler = 1.001;
+  if (scaler < 1.001) scaler = 1.001;
+  relaxDistance = scaler * resampleDistance;
   background(150);
   drawShape(points);
   update();
@@ -40,9 +43,9 @@ void draw() {
 
 void drawShape(ArrayList<PVector> array) {
   beginShape();
-  for (PVector p : array) {
-    vertex(p.x, p.y);
-    ellipse(p.x, p.y, 4, 4);
+  for (PVector point : array) {
+    vertex(point.x, point.y);
+    ellipse(point.x, point.y, 4, 4);
   }
   endShape();
 }
@@ -66,23 +69,23 @@ ArrayList<PVector> resample(ArrayList<PVector> pointsArray, float distance) {
   return resampledPoints;
 }
 
-ArrayList<PVector> relax(ArrayList<PVector> array, float dist) {
-  ArrayList<PVector> rel = new ArrayList<PVector>();
+ArrayList<PVector> relax(ArrayList<PVector> array, float distance) {
+  ArrayList<PVector> relaxedPoints = new ArrayList<PVector>();
   for (int i = 0; i < array.size(); i++) {
-    PVector cur = array.get(i);
-    int ngbrCount = 0;
-    PVector diff = new PVector(0, 0);
-    ArrayList<PVector> nbrs = quadTree.get(new CircleQuadTreeMask(cur.x, cur.y, dist), null);
-    for (PVector p : nbrs) {
-      if (p == cur) continue;
-      ngbrCount++;
-      PVector v = PVector.sub(cur, p);
-      diff.add(v.setMag(dist - v.mag()));
+    PVector currentPoint = array.get(i);
+    int neighbourCount = 0;
+    PVector sumDifference = new PVector(0, 0);
+    ArrayList<PVector> neighbours = quadTree.get(new CircleQuadTreeMask(currentPoint.x, currentPoint.y, distance), null);
+    for (PVector neighbour : neighbours) {
+      if (neighbour == currentPoint) continue;
+      neighbourCount++;
+      PVector difference = PVector.sub(currentPoint, neighbour);
+      sumDifference.add(difference.setMag(distance - difference.mag()));
     }
-    diff.mult(1.0f / ngbrCount);
-    rel.add(PVector.add(cur, diff));
+    sumDifference.mult(1.0f / neighbourCount);
+    relaxedPoints.add(PVector.add(currentPoint, sumDifference));
   }
-  return rel;
+  return relaxedPoints;
 }
 
 class QuadTree {
@@ -100,9 +103,9 @@ class QuadTree {
     this.points = new ArrayList<PVector>();
   }
 
-  void add(PVector p) {
+  void add(PVector point) {
     if (this.points.size() < quadTreeSectionCapacity) {
-      this.points.add(p);
+      this.points.add(point);
     } else {
       if (!this.hasSubSections) {
         float cx = this.bound.centerX;
@@ -115,39 +118,39 @@ class QuadTree {
         this.se = new QuadTree(new RectQuadTreeSectionBound(cx + hhw, cy + hhh, hhw, hhh));
         this.hasSubSections = true;
       }
-      if (p.x < this.bound.centerX) {
-        if (p.y < this.bound.centerY) {
-          this.nw.add(p);
+      if (point.x < this.bound.centerX) {
+        if (point.y < this.bound.centerY) {
+          this.nw.add(point);
         } else {
-          this.sw.add(p);
+          this.sw.add(point);
         }
       } else {
-        if (p.y < this.bound.centerY) {
-          this.ne.add(p);
+        if (point.y < this.bound.centerY) {
+          this.ne.add(point);
         } else {
-          this.se.add(p);
+          this.se.add(point);
         }
       }
     }
   }
 
-  ArrayList<PVector> get(CircleQuadTreeMask c, ArrayList<PVector> array) {
+  ArrayList<PVector> get(CircleQuadTreeMask circle, ArrayList<PVector> array) {
     if (null == array) {
       array = new ArrayList<PVector>();
     }
-    if (!this.bound.overlaps(c)) {
+    if (!this.bound.overlaps(circle)) {
       return array;
     } else {
       for (PVector p : this.points) {
-        if (c.contains(p)) {
+        if (circle.contains(p)) {
           array.add(p);
         }
       }
       if (this.hasSubSections) {
-        this.nw.get(c, array);
-        this.ne.get(c, array);
-        this.sw.get(c, array);
-        this.se.get(c, array);
+        this.nw.get(circle, array);
+        this.ne.get(circle, array);
+        this.sw.get(circle, array);
+        this.se.get(circle, array);
       }
     }
     return array;
@@ -189,9 +192,9 @@ class RectQuadTreeSectionBound {
     return (cornerDistanceSquared <= pow(circle.r, 2));
   }
 
-  boolean contains(PVector p) {
-    return p.x > this.centerX - this.halfWidth && p.x < this.centerX + this.halfWidth &&
-      p.y > this.centerY - this.halfHeight && p.y < this.centerY + this.halfHeight;
+  boolean contains(PVector point) {
+    return point.x > this.centerX - this.halfWidth && point.x < this.centerX + this.halfWidth &&
+      point.y > this.centerY - this.halfHeight && point.y < this.centerY + this.halfHeight;
   }
 }
 
@@ -204,15 +207,15 @@ class CircleQuadTreeMask {
     this.r = r;
   }
 
-  boolean overlaps(RectQuadTreeSectionBound r) {
-    return r.overlaps(this);
+  boolean overlaps(RectQuadTreeSectionBound rect) {
+    return rect.overlaps(this);
   }
 
-  boolean overlaps(CircleQuadTreeMask c) {
-    return PVector.dist(new PVector(this.x, this.y), new PVector(c.x, c.y)) < this.r + c.r;
+  boolean overlaps(CircleQuadTreeMask circle) {
+    return PVector.dist(new PVector(this.x, this.y), new PVector(circle.x, circle.y)) < this.r + circle.r;
   }
 
-  boolean contains(PVector p) {
-    return pow(p.x - this.x, 2) + pow(p.y - this.y, 2) < pow(this.r, 2);
+  boolean contains(PVector point) {
+    return pow(point.x - this.x, 2) + pow(point.y - this.y, 2) < pow(this.r, 2);
   }
 }
