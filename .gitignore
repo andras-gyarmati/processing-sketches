@@ -7,4 +7,10 @@ application.linux64
 application.windows32
 application.windows64
 application.macosx
-out
+*.mov
+*.iml
+out/
+export/
+frames/
+frames_/
+.idea/

@@ -1,0 +1,95 @@
+// differential line growth in a cellular grid
+
+int cellSize, cols, rows;
+Cell[][] grid;
+ArrayList<Cell> cells;
+
+void setup() {
+  size(1000, 1000);
+  surface.setLocation(10, 10);
+  cellSize = 5;
+  cols = width / cellSize;
+  rows = height / cellSize;
+  grid = new Cell[cols][rows];
+  cells = new ArrayList<Cell>();
+  fill(0);
+  noStroke();
+  init();
+}
+
+void init() {
+  for (int i = 0; i < cols; i++) {
+    for (int j = 0; j < rows; j++) {
+      grid[i][j] = new Cell(i, j);
+      float x = i * cellSize;
+      float y = j * cellSize;
+      float h = width / 2f;
+      float k = height / 2f;
+      float r2 = pow(100, 2);
+      if (abs(r2 - (pow(x - h, 2) + pow(y - k, 2))) < 1000) {
+        grid[i][j].isAlive = true;
+        cells.add(grid[i][j]);
+      }
+    }
+  }
+}
+
+void draw() {
+  background(255);
+  update();
+  for (int i = 0; i < cols; i++) {
+    for (int j = 0; j < rows; j++) {
+      if (grid[i][j].isAlive) {
+        rect(i * cellSize, j * cellSize, cellSize, cellSize);
+      }
+    }
+  }
+}
+
+// todo create a new array to the new cells and at the end overwrite cells
+// add growing if cell gets detached
+
+void update() {
+  for (int k = cells.size() - 1; k >= 0; k--) {
+    Cell c = cells.get(k);
+    int x = 0;
+    int y = 0;
+    for (int i = -1; i <= 1; i++) {
+      for (int j = -1; j <= 1; j++) {
+        if (grid[c.x + i][c.y + j].isAlive) {
+          x -= i;
+          y -= j;
+        }
+      }
+    }
+
+    if (x < 0) 
+      x = -1;
+    else if (x > 0) 
+      x = 1;
+
+    if (y < 0) 
+      y = -1;
+    else if (y > 0) 
+      y = 1;
+
+    if (x != 0 || x != 0) {
+      c.isAlive = false;
+      cells.remove(c);
+      Cell n = grid[c.x + x][c.y + y];
+      n.isAlive = true;
+      cells.add(n);
+    }
+  }
+}
+
+class Cell {
+  int x, y;
+  boolean isAlive;
+
+  Cell(int x, int y) {
+    this.x = x;
+    this.y = y;
+    this.isAlive = false;
+  }
+}
