@@ -1,11 +1,12 @@
 ArrayList<PVector> points;
 QuadTree quadTree;
 int initPointCount, quadTreeSectionCapacity;
-float resampleDistance, relaxDistance;
+float resampleDistance, relaxDistance, margin;
 
 void setup() {
   size(1000, 1000);
   surface.setLocation(10, 10);
+  margin = 50;
   PVector currentPointVector = new PVector(0, 100);
   PVector center = new PVector(width / 2, height / 2);
   resampleDistance = 10;
@@ -28,14 +29,18 @@ void update() {
   points = resample(points, resampleDistance);
   quadTree = new QuadTree(new RectQuadTreeSectionBound(width / 2, height / 2, width / 2, height / 2));
   for (PVector point : points) {
+    if (point.x < margin) point.x = margin;
+    if (point.x > width - margin) point.x = width - margin;
+    if (point.y < margin) point.y = margin;
+    if (point.y > height - margin) point.y = height - margin;
     quadTree.add(point);
   }
   points = relax(points, relaxDistance);
 }
 
 void draw() {
-  float scaler = 1.001;
-  if (scaler < 1.001) scaler = 1.001;
+  float scaler = 1.125;
+  if (scaler < 1.00001) scaler = 1.00001;
   relaxDistance = scaler * resampleDistance;
   background(150);
   drawShape(points);
@@ -44,6 +49,7 @@ void draw() {
 
 void drawShape(ArrayList<PVector> array) {
   beginShape();
+  stroke(0);
   for (PVector point : array) {
     vertex(point.x, point.y);
     ellipse(point.x, point.y, 3, 3);
@@ -52,6 +58,7 @@ void drawShape(ArrayList<PVector> array) {
   //  PVector point = array.get(i);
   //  curveVertex(point.x, point.y);
   //}
+  stroke(255, 0, 0);
   endShape();
 }
 
@@ -59,7 +66,15 @@ ArrayList<PVector> resample(ArrayList<PVector> pointsArray, float distance) {
   ArrayList<PVector> resampledPoints = new ArrayList<PVector>();
   float currentLength = 0;
   PVector p1, p2, newPoint;
-  for (int i = 0; i < pointsArray.size() - 1; i++) {
+  float sumLength = 0;
+  int i = 0;
+  for (; i < pointsArray.size() - 1; i++) {
+    sumLength += PVector.dist(pointsArray.get(i), pointsArray.get(i + 1));
+  }
+  sumLength += PVector.dist(pointsArray.get(i), pointsArray.get(0));
+  distance = (sumLength / ceil(sumLength / distance)) - 0.00009;
+  i = 0;
+  for (; i < pointsArray.size() - 1; i++) {
     p1 = pointsArray.get(i);
     p2 = pointsArray.get(i + 1);
     float segmentLength = PVector.dist(p1, p2);
