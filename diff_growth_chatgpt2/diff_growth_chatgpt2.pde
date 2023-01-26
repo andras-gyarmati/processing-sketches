@@ -10,7 +10,7 @@ void setup() {
   PVector center = new PVector(width / 2, height / 2);
   resampleDistance = 10;
   relaxDistance = 1.5 * resampleDistance;
-  initPointCount = 3;
+  initPointCount = 5;
   quadTreeSectionCapacity = 4;
   points = new ArrayList<PVector>();
   for (int i = 0; i <= initPointCount; i++) {
@@ -19,8 +19,9 @@ void setup() {
   }
   noFill();
   stroke(0);
+  strokeWeight(3);
   rectMode(CENTER);
-  //frameRate(10);
+  //frameRate(1);
 }
 
 void update() {
@@ -45,27 +46,32 @@ void drawShape(ArrayList<PVector> array) {
   beginShape();
   for (PVector point : array) {
     vertex(point.x, point.y);
-    ellipse(point.x, point.y, 4, 4);
+    ellipse(point.x, point.y, 3, 3);
   }
+  //for (int i = 0; i < 3; i++) {
+  //  PVector point = array.get(i);
+  //  curveVertex(point.x, point.y);
+  //}
   endShape();
 }
 
 ArrayList<PVector> resample(ArrayList<PVector> pointsArray, float distance) {
   ArrayList<PVector> resampledPoints = new ArrayList<PVector>();
   float currentLength = 0;
+  PVector p1, p2, newPoint;
   for (int i = 0; i < pointsArray.size() - 1; i++) {
-    PVector p1 = pointsArray.get(i);
-    PVector p2 = pointsArray.get(i + 1);
+    p1 = pointsArray.get(i);
+    p2 = pointsArray.get(i + 1);
     float segmentLength = PVector.dist(p1, p2);
     currentLength += segmentLength;
     while (currentLength >= distance) {
-        float t = (distance - currentLength + segmentLength) / segmentLength;
-        PVector newPoint = PVector.lerp(p1, p2, t);
-        resampledPoints.add(newPoint);
-        currentLength = currentLength - distance;
+      float t = (distance - currentLength + segmentLength) / segmentLength;
+      newPoint = PVector.lerp(p1, p2, t);
+      resampledPoints.add(newPoint);
+      currentLength = currentLength - distance;
     }
   }
-  resampledPoints.add(pointsArray.get(0));
+  resampledPoints.add(resampledPoints.get(0));
   return resampledPoints;
 }
 
